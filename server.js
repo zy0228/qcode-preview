@@ -1,4 +1,6 @@
 const Koa = require('koa')
+const serve = require('koa-static')
+const cors = require('koa2-cors')
 const Router = require('koa-router')
 const axois = require('axios')
 const crypto = require('crypto')
@@ -9,6 +11,8 @@ const app = new Koa()
 const router = new Router()
 const wxFileMd5 = crypto.createHash('md5').update(Buffer.from(config.wxInstallPath)).digest('hex')
 const baseFilePath = path.resolve('../')
+
+app.use(cors())
 
 /**
  * ---------------------------------------------------
@@ -28,29 +32,18 @@ function getMiniProgramPort () {
   })
 }
 
+function getQcode (port) {
+  return axois.get(`http://127.0.0.1:${port}/v2/preview?project=${config.projectPath}&qr-format=base64`)
+}
+
 router.get('/getQcode', async (ctx) => {
-  // try {
-  //   const port = await getMiniProgramPort()
-  //   axois.get(`http://127.0.0.1:${port}/v2/preview?project=%2FUsers%2Fusername%2Fdemo`).then(res => {
-  //     console.log('成功', res)
-  //     ctx.body = res
-  //   }).catch(err => {
-  //     console.log('错了', err)
-  //     ctx.body = err
-  //   })
-  // } catch(e) {
-  //   ctx.body = e
-  // }
   const port = await getMiniProgramPort()
-  axois.get(`http://127.0.0.1:${port}/v2/preview?project=%2FUsers%2Fusername%2Fdemo`).then(res => {
-    console.log('resres', res.data)
-    ctx.body = 'hello world'
-  }).catch(e => {
-    console.log('eeee', e)
-    ctx.body = e
-  })
+  const body = await getQcode(port)
+  ctx.body = body.data
 })
 
 app.use(router.routes())
+
+app.use(serve('./dist'))
 
 app.listen(3000)
